@@ -1,0 +1,24 @@
+[[package]]
+name = "prompt"
+version = "0.4.1"
+description = "Library for prompting input on the command line."
+category = "main"
+optional = false
+python-versions = ">=3.3"
+
+[[package]]
+name = "ruff"
+version = "0.16.9"
+description = "An extremely fast Python linter and code formatter, written in Rust."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.10"
+content-hash = "899c963e080afb97c641278bcf62411389ffc0b455ccfecac98b8a2ac551560e"
+
+[metadata.files]
+prompt = []
+ruff = []
