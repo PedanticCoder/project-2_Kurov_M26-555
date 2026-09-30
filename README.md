@@ -28,4 +28,46 @@
 ### Демонстрация работы (Asciinema)
 [![asciicast](https://asciinema.org)](https://asciinema.org/a/xJkVt6K18mRdv0EN)
 
+## CRUD-операции
+
+База данных поддерживает полноценный жизненный цикл управления записями (CRUD). Данные строк хранятся независимо от схемы в директории `data/` в формате JSON.
+
+### Примеры CRUD команд
+
+* **Вставка строки (ID генерируется автоматически):**
+  ```text
+  >>> Введите команду: insert into users values ("Sergei", 28, true)
+  Запись с ID=1 успешно добавлена в таблицу "users".
+  ```
+* **Выборка по условию (вывод через PrettyTable):**
+  ```text
+  >>> Введите команду: select from users where age = 28
+  +----+--------+-----+-----------+
+
+  | ID |  name  | age | is_active |
+  +----+--------+-----+-----------+
+
+  | 1  | Sergei | 28  |    True   |
+  +----+--------+-----+-----------+
+  ```
+* **Обновление по фильтру:**
+  ```text
+  >>> Введите команду: update users set age = 29 where name = "Sergei"
+  Запись с ID=1 в таблице "users" успешно обновлена.
+  ```
+* **Удаление записи:**
+  ```text
+  >>> Введите команду: delete from users where ID = 1
+  Запись с ID=1 успешно удалена из таблицы "users".
+  ```
+* **Информация о состоянии таблицы:**
+  ```text
+  >>> Введите команду: info users
+  Таблица: users
+  Столбцы: ID:int, name:str, age:int, is_active:bool
+  Количество записей: 0
+  ```
+
+### Демонстрация CRUD-операций (Asciinema)
+[![asciicast](https://asciinema.org)](https://asciinema.org/a/5MrdI7mbg38GjZHL)
 

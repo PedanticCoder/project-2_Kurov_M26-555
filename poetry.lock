@@ -1,4 +1,18 @@
 [[package]]
+name = "prettytable"
+version = "3.18.0"
+description = "A simple Python library for easily displaying tabular data in a visually appealing ASCII table format"
+category = "main"
+optional = false
+python-versions = ">=3.10"
+
+[package.dependencies]
+wcwidth = ">=0.3.5"
+
+[package.extras]
+tests = ["pytest-cov", "pytest-lazy-fixtures", "pytest (>=9)"]
+
+[[package]]
 name = "prompt"
 version = "0.4.1"
 description = "Library for prompting input on the command line."
@@ -14,11 +28,21 @@ category = "dev"
 optional = false
 python-versions = ">=3.7"
 
+[[package]]
+name = "wcwidth"
+version = "0.9.1"
+description = "Measures the displayed width of unicode strings in a terminal"
+category = "main"
+optional = false
+python-versions = ">=3.9"
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "899c963e080afb97c641278bcf62411389ffc0b455ccfecac98b8a2ac551560e"
+content-hash = "cf81cce208f9589c19575c91565eae60a3b8645a3bc704d0eac38d4235f9e434"
 
 [metadata.files]
+prettytable = []
 prompt = []
 ruff = []
+wcwidth = []
