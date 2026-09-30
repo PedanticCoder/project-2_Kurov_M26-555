@@ -6,36 +6,34 @@ import prompt
 from prettytable import PrettyTable
 
 from .core import create_table, delete, drop_table, insert, list_tables, select, update
+from .decorators import create_cacher
 from .parser import parse_set, parse_where
 from .utils import load_metadata, load_table_data, save_metadata, save_table_data
 
 DB_FILE = "db_meta.json"
 
+# Создаем замыкание для кэширования запросов SELECT
+query_cache = create_cacher()
+
 def print_welcome_menu():
-    """Выводит КОРОТКОЕ меню строго при первом запуске программы (как в ТЗ)."""
     print("<command> exit - выход из программы")
     print("<command> help- справочная информация")
 
 def print_help():
-    """Выводит ПОЛНУЮ справочную информацию по CRUD операциям по команде help."""
     print("\n***Операции с данными***")
     print("Функции:")
-    print("<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись.") # noqa: E501
-    print("<command> select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию.") # noqa: E501
+    print("<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись.")  # noqa: E501
+    print("<command> select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию.")  # noqa: E501
     print("<command> select from <имя_таблицы> - прочитать все записи.")
-    print("<command> update <имя_таблицы> set <столбец1> = <новое_значение1> where <столбец_условия> = <значение_условия> - обновить запись.") # noqa: E501
-    print("<command> delete from <имя_таблицы> where <столбец> = <значение> - удалить запись.") # noqa: E501
+    print("<command> update <имя_таблицы> set <столбец1> = <новое_значение1> where <столбец_условия> = <значение_условия> - обновить запись.")  # noqa: E501
+    print("<command> delete from <имя_таблицы> where <столбец> = <значение> - удалить запись.")  # noqa: E501
     print("<command> info <имя_таблицы> - вывести информацию о таблице.")
     print("<command> exit - выход из программы")
     print("<command> help- справочная информация")
 
 def render_table(schema, data):
-    """Выводит данные в виде красивой таблицы с помощью PrettyTable."""
-    if not data and not isinstance(data, list):
-        data = [data]
-    elif isinstance(data, dict):
-        data = [data]
-        
+    if not data:
+        return
     x = PrettyTable()
     x.field_names = list(schema.keys())
     for row in data:
@@ -43,7 +41,6 @@ def render_table(schema, data):
     print(x)
 
 def run():
-    # Выводим КРАТКОЕ меню при первом запуске
     print_welcome_menu()
     
     while True:
@@ -62,7 +59,6 @@ def run():
 
         metadata = load_metadata(DB_FILE)
         
-        # НАДЕЖНЫЙ ПАРСИНГ СОСТАВНЫХ КОМАНД
         if len(args) > 1 and args[0] == "insert" and args[1] == "into":
             command = "insert into"
         elif len(args) > 1 and args[0] == "select" and args[1] == "from":
@@ -77,7 +73,6 @@ def run():
                 break
                 
             case "help":
-                # Полная справка выводится только здесь!
                 print_help()
                 
             case "list_tables":
@@ -116,7 +111,7 @@ def run():
 
             case "insert into":
                 if len(args) < 4 or args[3] != "values":
-                    print("Ошибка: Неверный синтаксис. Ожидалось: insert into <таблица> values (<значения>)") # noqa: E501
+                    print("Ошибка: Неверный синтаксис.")
                     continue
                 t_name = args[2]
                 raw_values = args[4:]
@@ -143,8 +138,12 @@ def run():
                 except (ValueError, KeyError) as e:
                     print(f"Ошибка: {e}")
                     continue
-                    
-                res = select(t_data, where_clause)
+                
+                # Формируем уникальный ключ для кэша на основе запроса
+                cache_key = f"{t_name}_{str(where_clause)}"
+                
+                # Интегрируем замыкание для получения кэшированного или нового результата  # noqa: E501
+                res = query_cache(cache_key, lambda: select(t_data, where_clause))
                 render_table(schema, res)
 
             case "update":
@@ -166,11 +165,12 @@ def run():
                     print(f"Ошибка: {e}")
                     continue
                 
-                new_t_data, updated_ids = update(t_data, set_clause, where_clause)
-                save_table_data(t_name, new_t_data)
-                
-                target_id = updated_ids[0] if updated_ids else 1
-                print(f'Запись с ID={target_id} в таблице "{t_name}" успешно обновлена.') # noqa: E501
+                res_update = update(t_data, set_clause, where_clause)
+                if res_update is not None:
+                    new_t_data, updated_ids = res_update
+                    save_table_data(t_name, new_t_data)
+                    target_id = updated_ids[0] if updated_ids else 1
+                    print(f'Запись с ID={target_id} в таблице "{t_name}" успешно обновлена.')  # noqa: E501
 
             case "delete from":
                 if len(args) < 3:
@@ -190,19 +190,15 @@ def run():
                     print(f"Ошибка: {e}")
                     continue
                     
-                new_t_data, deleted_ids = delete(t_data, where_clause)
-                
-                if not deleted_ids:
-                    search_col = list(where_clause.keys())[0] if where_clause else "ID"
-                    search_val = list(where_clause.values())[0] if where_clause else "1"
-                    print(f'Ошибка: Запись с {search_col}={search_val} не существует.')
-                    continue
-                
-                save_table_data(t_name, new_t_data)
-                
-                target_id = deleted_ids[0]
-                print(f'Запись с ID={target_id} успешно удалена из таблицы "{t_name}".')
-
+                res_delete = delete(t_data, where_clause)
+                if res_delete is not None:
+                    new_t_data, deleted_ids = res_delete
+                    if not deleted_ids:
+                        print('Ошибка: Запись не найдена.')
+                        continue
+                    save_table_data(t_name, new_t_data)
+                    target_id = deleted_ids[0]
+                    print(f'Запись с ID={target_id} успешно удалена из таблицы "{t_name}".')  # noqa: E501
 
             case _:
                 print(f"Ошибка: Неизвестная команда '{command}'.")
